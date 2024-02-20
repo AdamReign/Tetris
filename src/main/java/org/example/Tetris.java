@@ -1,6 +1,7 @@
 package org.example;
 
 import org.example.controller.BoardController;
+import org.example.model.Board;
 import org.example.service.TetrominoService;
 import org.example.view.BoardView;
 
@@ -15,15 +16,16 @@ public class Tetris {
         int SCALE = 32;
         int WIDTH = 16;
         int HEIGHT = 22;
-        BoardView boardView = new BoardView(WIDTH, HEIGHT, SCALE);
+        Board board = new Board(WIDTH, HEIGHT, SCALE);
+        BoardView boardView = new BoardView(board);
 
 
 
 
 
-        TetrominoService tetrominoService = new TetrominoService(boardView);
+        TetrominoService tetrominoService = new TetrominoService(board, boardView);
         Queue<KeyEvent> keyEvents = new ArrayBlockingQueue<>(1);
-        BoardController boardController = new BoardController(boardView, tetrominoService, keyEvents);
+        BoardController boardController = new BoardController(board, boardView, tetrominoService, keyEvents);
 
 
 

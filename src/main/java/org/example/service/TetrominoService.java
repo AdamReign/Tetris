@@ -3,6 +3,7 @@ package org.example.service;
 import org.example.enums.Direction;
 import org.example.enums.Position;
 import org.example.enums.Type;
+import org.example.model.Board;
 import org.example.model.Tetromino;
 import org.example.repository.TetrominoRepository;
 import org.example.view.BoardView;
@@ -15,10 +16,12 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 public class TetrominoService {
-    private TetrominoRepository TETROMINO_REPOSITORY;
-    private BoardView BOARD_VIEW;
+    private final TetrominoRepository TETROMINO_REPOSITORY;
+    private final Board  BOARD;
+    private final BoardView BOARD_VIEW;
 
-    public TetrominoService(BoardView boardView) {
+    public TetrominoService(Board board, BoardView boardView) {
+        BOARD = board;
         BOARD_VIEW = boardView;
         TETROMINO_REPOSITORY = new TetrominoRepository();
     }
@@ -74,17 +77,17 @@ public class TetrominoService {
         // Знаходження максимальної координати по осі X серед блоків нової позиції
         int maxX = newPosition.stream().mapToInt(Tetromino.Block::getX).max().orElse(0);
         // Визначення кількості кроків, на яку фігура вийшла за межі поля
-        int stepBack = Math.max(maxX - (BOARD_VIEW.getWidthBoard() - 1), 0);
+        int stepBack = Math.max(maxX - (BOARD.getWidth() - 1), 0);
 
         // Виправлення позиції фігури в разі виходу за межі поля
         List<Tetromino.Block> newPositionAdjusted = adjustPosition(newPosition, stepBack);
 
         // Обробка випадку, коли фігура вийшла за межі поля по осі X
-        if (maxX > BOARD_VIEW.getWidthBoard() - 1) {
+        if (maxX > BOARD.getWidth() - 1) {
             handleMaxXPosition(tetromino, maxPositions, positions, newPositionAdjusted, stepBack);
         }
         // Обробка випадку, коли фігура заважає іншій фігурі
-        else if (newPosition.stream().anyMatch(BOARD_VIEW.getAllBlocks()::contains)) {
+        else if (newPosition.stream().anyMatch(BOARD.getAllBlocks()::contains)) {
             handleBlockedPosition(tetromino, positions, position);
         }
         // Встановлення блоків з новою позиціє для фігури
@@ -117,7 +120,7 @@ public class TetrominoService {
     private void handleMaxXPosition(Tetromino tetromino, int maxPositions, Position[] positions,
             List<Tetromino.Block> newPositionAdjusted, int stepBack) {
 
-        if (newPositionAdjusted.stream().anyMatch(BOARD_VIEW.getAllBlocks()::contains)) {
+        if (newPositionAdjusted.stream().anyMatch(BOARD.getAllBlocks()::contains)) {
             tetromino.setPosition(tetromino.getPosition() == Position.UP ?
                     positions[maxPositions - 1] : positions[tetromino.getPosition().ordinal() - 1]
             );
@@ -135,10 +138,10 @@ public class TetrominoService {
 
     public void fall(Tetromino tetromino) {
         // Створює Y координату для падіння фігурки
-        int mheight = BOARD_VIEW.getHeightBoard()-2;
-        for (int i = tetromino.getY()+1; i < BOARD_VIEW.getHeightBoard()-1; i++) {
+        int mheight = BOARD.getHeight()-2;
+        for (int i = tetromino.getY()+1; i < BOARD.getHeight()-1; i++) {
             for (Tetromino.Block block: tetromino.getBlocks()) {
-                if (BOARD_VIEW.getAllBlocks().contains(new Tetromino.Block(
+                if (BOARD.getAllBlocks().contains(new Tetromino.Block(
                         block.getX(),
                         block.getY()+(i-tetromino.getY()),
                         null)
@@ -152,7 +155,7 @@ public class TetrominoService {
         // Переміщує фігурку вниз, поки вона не вріжиться в щось
         for (int i = tetromino.getY(); i < mheight+1; i++) {
             move(tetromino, Direction.DOWN);
-            BOARD_VIEW.setScore(BOARD_VIEW.getScore()+1);
+            BOARD.setScore(BOARD.getScore()+1);
         }
     }
 
@@ -176,30 +179,30 @@ public class TetrominoService {
 
         // Перевірка фігурки на вихід за межі поля
         for (Tetromino.Block block: newBlocks) {
-            if (block.getX() < 1 || block.getX() > BOARD_VIEW.getWidthBoard()-1) return;
+            if (block.getX() < 1 || block.getX() > BOARD.getWidth()-1) return;
         }
 
         // Збереження блоків фігурки на полі, якщо під нею є блоки чи підлога
         if (tetromino.getDirection() == Direction.DOWN) {
             for (Tetromino.Block block: newBlocks) {
-                if (BOARD_VIEW.getAllBlocks().contains(block) || block.getY() > BOARD_VIEW.getHeightBoard()-2) {
+                if (BOARD.getAllBlocks().contains(block) || block.getY() > BOARD.getHeight()-2) {
                     for (Tetromino.Block block1: tetromino.getBlocks()) {
-                        BOARD_VIEW.getAllBlocks().add(new Tetromino.Block(block1.getX(), block1.getY(), Color.LIGHT_GRAY));
+                        BOARD.getAllBlocks().add(new Tetromino.Block(block1.getX(), block1.getY(), Color.LIGHT_GRAY));
                     }
 
-                    BOARD_VIEW.setTetromino(BOARD_VIEW.getNextTetromino());
+                    BOARD.setTetromino(BOARD.getNextTetromino());
 
 
 
                     // TODO
-                    BOARD_VIEW.setNextTetromino(getRandom(BOARD_VIEW.getWidthBoard()/2, 0));
+                    BOARD.setNextTetromino(getRandom(BOARD.getWidth()/2, 0));
                     return;
                 }
             }
             // Перевірка на зайняте місце іншим блоком
         } else {
             for (Tetromino.Block block: newBlocks) {
-                if (BOARD_VIEW.getAllBlocks().contains(block)) return;
+                if (BOARD.getAllBlocks().contains(block)) return;
             }
         }
 

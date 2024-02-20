@@ -7,7 +7,6 @@ import org.example.model.Tetromino;
 import java.awt.Color;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class TetrominoRepository {
     private static final Map<Type, Map<Position, int[][]>> ALL_TETROMINOES;

@@ -1,277 +1,427 @@
 package org.example.view;
 
 import org.example.enums.Position;
+import org.example.model.Board;
 import org.example.model.Tetromino;
 
 import javax.swing.*;
-import java.awt.*;
-import java.util.ArrayList;
 import java.util.List;
+import java.awt.*;
 
+/**
+ * Відображає ігрове поле
+ */
 public class BoardView extends JPanel {
-    private final int SCALE;
-    private final int WIDTH;
-    private final int HEIGHT;
-    private Tetromino tetromino;
-    private Tetromino nextTetromino;
-    private List<Tetromino.Block> allBlocks = new ArrayList<>();
-    private volatile boolean close = false;
-    private volatile boolean gameOver;
-    private volatile boolean pause;
-    private volatile int score = 0;
-    private volatile int speed = 1000;
+    /**
+     * Модель ігрового поля
+     */
+    private final Board board;
 
-    public BoardView(int width, int height, int scale) {
-        WIDTH = width;
-        HEIGHT = height;
-        SCALE = scale;
+    public BoardView(Board board) {
+        this.board = board;
     }
 
+    /**
+     * Відображає на екрані будь-які задані елементи
+     * @param g містить в собі дані для відображення
+     */
     @Override
     public void paint(Graphics g) {
-        // Малює ігрове поле
-        g.fillRect(0, 0, (WIDTH+6)*SCALE, HEIGHT*SCALE);
+//        int scale = board.getScale();
+//        int width = board.getWidth();
+//        int height = board.getHeight();
+//        Tetromino tetromino = board.getTetromino();
+//        Tetromino nextTetromino = board.getNextTetromino();
+//        List<Tetromino.Block> allBlocks = board.getAllBlocks();
+//        boolean gameOver = board.isGameOver();
+//        boolean pause = board.isPause();
+//        int score = board.getScore();
+
+        drawBackground(g);
+
+        drawDropZone(g);
+
+        drawTetromino(g);
+
+        markCompletedLines();
+
+        removeDeletedBlocksAndShiftDownward();
+
+        drawBlocksOnBoard(g);
+
+        drawBorders(g);
+
+        displayPauseMessage(g);
+
+        displayGameOverMessage(g);
+
+        drawNextTetromino(g);
+
+        drawCoordinates(g);
+
+        drawScore(g);
+    }
+
+    /**
+     * Відображає в інформаційній частині ігрового поля бали, які гравець набрав за гру
+     */
+    private void drawScore(Graphics g) {
+        int scale = board.getScale();
+        int width = board.getWidth();
+        int offsetX = (width + 1) * scale; // Зміщення по X для відображення даних про бали
+        String score = String.format("%06d", board.getScore());
+
+        // Налаштування шрифту та графіки для надпису "БАЛИ"
+        Font scoreFont = new Font("Bitstream Charter", Font.BOLD, 35);
+        g.setFont(scoreFont);
+        g.setColor(Color.YELLOW);
+        int scoreTextX = offsetX + 15; // Координата X для надпису "БАЛИ"
+        int scoreTextY = 7 * scale + 5; // Координата Y для надпису "БАЛИ"
+        g.drawString("БАЛИ", scoreTextX, scoreTextY);
+
+        // Малювання фону для відображення балів
+        g.setColor(Color.GRAY);
+        int backgroundX = offsetX + 10; // Координата X для фону
+        int backgroundY = 7 * scale + 13; // Координата Y для фону
+        int backgroundWidth = 4 * scale - 18; // Ширина фону
+        int backgroundHeight = scale + 5; // Висота фону
+        g.fillRect(backgroundX, backgroundY, backgroundWidth, backgroundHeight);
+
+        g.setColor(Color.YELLOW);
+        int scoreX = offsetX + 12; // Координата X для відображення балів
+        int scoreY = 7 * scale + 16; // Координата Y для відображення балів
+        int scoreWidth = 4 * scale - 22; // Ширина блоку з балами
+        int scoreHeight = scale; // Висота блоку з балами
+        g.fillRect(scoreX, scoreY, scoreWidth, scoreHeight);
+
+        // Налаштування шрифту та графіки для відображення балів
+        Font scoreValueFont = new Font("Bitstream Charter", Font.BOLD, 30);
+        g.setFont(scoreValueFont);
+        g.setColor(Color.BLACK);
+        g.drawString(score, scoreTextX, 8 * scale + 10); // Відображення кількості балів
+    }
+
+    /**
+     * Відображає координати фігурки
+     */
+    private void drawCoordinates(Graphics g) {
+        int scale = board.getScale();
+        int height = board.getHeight();
+        Tetromino tetromino = board.getTetromino();
+
+        // Налаштування шрифту та графіки для відображення координат фігурки
+        Font coordinatesFont = new Font("Bitstream Charter", Font.BOLD, 20);
+        g.setFont(coordinatesFont);
+        g.setColor(Color.YELLOW);
+
+        // Координати для відображення тексту з координатами фігурки
+        int textX = scale + 5; // Координата X для тексту з координатами
+        int textY = 56; // Координата Y для тексту з координатами
+
+        // Відображення тексту з координатами фігурки
+        String coordinatesText = String.format("X: %d Y: %d", tetromino.getX(), (height - 1 - tetromino.getY()));
+        g.drawString(coordinatesText, textX, textY);
+    }
+
+    /**
+     * Малює в інформаційному блоці яка буде наступна фігурка
+     */
+    private void drawNextTetromino(Graphics g) {
+        int scale = board.getScale();
+        int width = board.getWidth();
+        Tetromino nextTetromino = board.getNextTetromino();
+
+        nextTetromino.getAllPositions().get(Position.UP).forEach(block ->  {
+            g.setColor(block.getColor());
+            int blockX = block.getX();
+            int blockY = block.getY();
+            int blockScale = scale - 1;
+
+            int testX = (blockX + width + 2) * scale;
+            int testY = (blockY + 3) * scale;
+            switch (nextTetromino.getType()) {
+                case I -> g.fillRect(
+                        testX + 17,
+                        (blockY + 4) * scale + 1,
+                        blockScale,blockScale);
+                case J, L -> g.fillRect(
+                        testX + 1,
+                        testY + 17,
+                        blockScale, blockScale);
+                case O -> g.fillRect(
+                        testX + 1,
+                        testY + 1,
+                        blockScale, blockScale);
+                case S, T, Z -> g.fillRect(
+                        (blockX + width + 1) * scale + 17,
+                        testY + 1,
+                        blockScale, blockScale);
+            }
+        });
+    }
+
+    /**
+     * Виводить на екран "Кінець гри", коли гру закінчено
+     */
+    private void displayGameOverMessage(Graphics g) {
+        int scale = board.getScale();
+        int height = board.getHeight();
+        List<Tetromino.Block> allBlocks = board.getAllBlocks();
+
+        for (Tetromino.Block block: allBlocks) {
+            boolean isBlockTouchingCeiling = block.getY() == 1;
+            if (isBlockTouchingCeiling) {
+                board.setGameOver(true);
+                Font sGameOver = new Font("Bitstream Charter", Font.BOLD, 40);
+                Graphics2D g2D = (Graphics2D) g;
+                g2D.setFont(sGameOver);
+                g2D.setColor(Color.YELLOW);
+                g2D.drawString(
+                        "Кінець гри",
+                        5 * scale,
+                        (height * scale) / 2);
+                break;
+            }
+        }
+    }
+
+    /**
+     * Виводить на екран текст "Пауза", коли гра ставиться на паузу
+     */
+    private void displayPauseMessage(Graphics g) {
+        int scale = board.getScale();
+        int height = board.getHeight();
+        boolean gameOver = board.isGameOver();
+        boolean pause = board.isPause();
+
+        if (!gameOver && pause) {
+            Font sPause = new Font("Bitstream Charter", Font.BOLD, 40);
+            Graphics2D g2D = (Graphics2D) g;
+            g2D.setFont(sPause);
+            g2D.setColor(Color.YELLOW);
+            g2D.drawString(
+                    "Пауза",
+                    7 * scale,
+                    (height * scale) / 2);
+        }
+    }
+
+    /**
+     * Малює кордони ігрового поля
+     */
+    private void drawBorders(Graphics g) {
+        int scale = board.getScale();
+        int width = board.getWidth();
+        int height = board.getHeight();
+
+        for (int i = 1; i < height - 1; i++) {
+            int borderScale = scale - 1;
+            int borderY = i * scale + 1;
+
+            g.setColor(Color.GRAY);
+            // Малює лівий кордон
+            g.fillRect(
+                    1,
+                    borderY,
+                    borderScale, borderScale);
+            // Малює кордон_1 правого кордону
+            g.fillRect(
+                    width * scale + 1,
+                    borderY,
+                    borderScale, borderScale);
+            // Малює кордон_2 правого кордону
+            g.fillRect(
+                    (width + 5) * scale + 1,
+                    borderY,
+                    borderScale, borderScale);
+        }
+
+        // Малює кордон_1 верхнього кордону
+        for (int i = 0; i < width + 6; i++) {
+            int borderScale = scale - 1;
+
+            g.setColor(Color.GRAY);
+            g.fillRect(
+                    i * scale + 1,
+                    1,
+                    borderScale, borderScale);
+        }
+
+        // Малює кордон_2 верхнього кордону
+        for (int i = width + 1; i < width + 5; i++) {
+            int borderScale = scale - 1;
+
+            g.setColor(Color.GRAY);
+            g.fillRect(
+                    i * scale + 1,
+                    (5) * scale + 1,
+                    borderScale, borderScale);
+        }
+
+        // Малює нижній кордон
+        for (int i = 0; i < width + 6; i++) {
+            int borderScale = scale - 1;
+
+            g.setColor(Color.GRAY);
+            g.fillRect(
+                    i * scale + 1,
+                    (height - 1) * scale + 1,
+                    borderScale, borderScale);
+        }
+    }
+
+    /**
+     * Малює всі блоки allBlocks на ігровому полі
+     */
+    private void drawBlocksOnBoard(Graphics g) {
+        int scale = board.getScale();
+        List<Tetromino.Block> allBlocks = board.getAllBlocks();
+
+        allBlocks.forEach(block -> {
+            int borderScale = scale - 1;
+
+            g.setColor(block.getColor());
+            g.fillRect(
+                    block.getX() * scale + 1,
+                    block.getY() * scale + 1,
+                    borderScale, borderScale);
+        });
+    }
+
+    /**
+     * Перевіряє блоки в allBlocks на створення заповненої лінії.
+     * Якщо утворилась лінія, то помічає всі блоки лінії як видаленими
+     * та змінює їх колір на жовтий
+     */
+    private void markCompletedLines() {
+        int width = board.getWidth();
+        List<Tetromino.Block> allBlocks = board.getAllBlocks();
+
+        allBlocks.forEach(checkingBlock ->  {
+            int lineSize = 1;
+            for (Tetromino.Block block: allBlocks) {
+                if (checkingBlock.getY() == block.getY()) {
+                    lineSize++;
+                }
+            }
+
+            if (lineSize >= width) {
+                for (int i = 0; i < allBlocks.size(); i++) {
+                    if (allBlocks.get(i).getY() == checkingBlock.getY()) {
+                        allBlocks.get(i).delete();
+                        allBlocks.set(i, allBlocks.get(i).copyWithColor(Color.YELLOW));
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Прибирає з allBlocks всі видалені блоки та рухає верхні блоки вниз
+     */
+    private void removeDeletedBlocksAndShiftDownward() {
+        List<Tetromino.Block> allBlocks = board.getAllBlocks();
+        int score = board.getScore();
+
+        for (int i = 0; i < allBlocks.size(); i++) {
+            Tetromino.Block blockForDeletionCheck = allBlocks.get(i);
+            if (blockForDeletionCheck.isDeleted()) {
+                // Видаляється блок та збільшуються бали
+                Tetromino.Block deletedBlock = allBlocks.remove(i);
+                score = score + 10;
+
+                // Опускає на одну позицію вниз всі блоки над видаленим
+                for (int j = 0; j < allBlocks.size(); j++) {
+                    Tetromino.Block checkingBlock = allBlocks.get(j);
+                    boolean isBlockAboveDeleted = deletedBlock.getX() == checkingBlock.getX() && deletedBlock.getY() > checkingBlock.getY();
+                    if (isBlockAboveDeleted) {
+                        Tetromino.Block blockAboveDeleted = checkingBlock;
+                        allBlocks.set(j, blockAboveDeleted.lower());
+                    }
+                }
+            }
+        }
+
+        board.setScore(score);
+    }
+
+    /**
+     * Малює ігрову фігурку на полі
+     */
+    private void drawTetromino(Graphics g) {
+        int scale = board.getScale();
+        Tetromino tetromino = board.getTetromino();
+
+        for (int i = 0; i < tetromino.getBlocks().size(); i++) {
+            g.setColor(tetromino.getBlocks().get(i).getColor());
+            g.fillRect(
+                    tetromino.getBlocks().get(i).getX() * scale + 1,
+                    tetromino.getBlocks().get(i).getY() * scale + 1,
+                    scale - 1, scale - 1
+            );
+        }
+    }
+
+    /**
+     * Малює приціл для ігрової фігурки на полі
+     */
+    private void drawDropZone(Graphics g) {
+        int scale = board.getScale();
+        Tetromino tetromino = board.getTetromino();
 
         // Створює Y координату для прицілу фігурки
-        int mheight = HEIGHT-2;
-        for (int i = tetromino.getY()+1; i < HEIGHT-1; i++) {
+        int mheight = calculateAimYCoordinate();
+
+        // Малює приціл
+        for (int i = 0; i < tetromino.getBlocks().size(); i++) {
+            g.setColor(tetromino.getBlocks().get(i).getColor());
+            g.fillRect(
+                    tetromino.getBlocks().get(i).getX() * scale + 1,
+                    (tetromino.getBlocks().get(i).getY()+(mheight - tetromino.getY())) * scale + 1,
+                    scale - 1, scale - 1
+            );
+            g.setColor(Color.BLACK);
+            g.fillRect(
+                    tetromino.getBlocks().get(i).getX() * scale + 2,
+                    (tetromino.getBlocks().get(i).getY()+(mheight - tetromino.getY())) * scale + 2,
+                    scale - 3, scale - 3
+            );
+        }
+    }
+
+    /**
+     * Створює Y координату для прицілу фігурки
+     */
+    private int calculateAimYCoordinate() {
+        int height = board.getHeight();
+        Tetromino tetromino = board.getTetromino();
+        List<Tetromino.Block> allBlocks = board.getAllBlocks();
+
+        int mheight = height - 2;
+        for (int i = tetromino.getY() + 1; i < height - 1; i++) {
             for (Tetromino.Block block: tetromino.getBlocks()) {
-                if (allBlocks.contains(new Tetromino.Block(block.getX(), block.getY()+(i- tetromino.getY()),null))) {
+                if (allBlocks.contains(new Tetromino.Block(
+                        block.getX(),
+                        block.getY() + (i - tetromino.getY()),
+                        null
+                ))) {
                     mheight = Math.min(i - 1, mheight);
                     break;
                 }
             }
         }
-
-        // Створює приціл для фігурки
-        for (int i = 0; i < tetromino.getBlocks().size(); i++) {
-            g.setColor(tetromino.getBlocks().get(i).getColor());
-            g.fillRect(tetromino.getBlocks().get(i).getX()*SCALE+1, (tetromino.getBlocks().get(i).getY()+(mheight- tetromino.getY()))*SCALE+1, SCALE-1, SCALE-1);
-            g.setColor(Color.BLACK);
-            g.fillRect(tetromino.getBlocks().get(i).getX()*SCALE+2, (tetromino.getBlocks().get(i).getY()+(mheight- tetromino.getY()))*SCALE+2, SCALE-3, SCALE-3);
-        }
-
-        // Малює фігурку
-        for (int i = 0; i < tetromino.getBlocks().size(); i++) {
-            g.setColor(tetromino.getBlocks().get(i).getColor());
-            g.fillRect(tetromino.getBlocks().get(i).getX()*SCALE+1, tetromino.getBlocks().get(i).getY()*SCALE+1, SCALE-1, SCALE-1);
-        }
-
-        // Видаляє з allBlocks всі блоки жовтого кольору і рухає верхні блоки вниз
-        for (int i = 0; i < allBlocks.size(); i++) {
-            if (allBlocks.get(i).getColor() == Color.YELLOW) {
-                for (int j = 0; j < allBlocks.size(); j++) {
-                    if (allBlocks.get(j).getX() == allBlocks.get(i).getX() && allBlocks.get(j).getY() < allBlocks.get(i).getY()) {
-                        allBlocks.set(j, new Tetromino.Block(allBlocks.get(j).getX(), allBlocks.get(j).getY()+1, allBlocks.get(j).getColor()));
-                    }
-                }
-
-                allBlocks.remove(i);
-                score += 10;
-            }
-        }
-
-        // Перевіряє блоки в allBlocks на створення лінії і помічує їх жовтим кольором
-        for (Tetromino.Block block: allBlocks) {
-            int lineSize = 1;
-            for (Tetromino.Block block1: allBlocks) {
-                if (block.getY() == block1.getY()) lineSize++;
-            }
-
-            if (lineSize == WIDTH) {
-                for (int i = 0; i < allBlocks.size(); i++) {
-                    if (allBlocks.get(i).getY() == block.getY()) {
-                        allBlocks.set(i, new Tetromino.Block(allBlocks.get(i).getX(), allBlocks.get(i).getY(), Color.YELLOW));
-                    }
-                }
-            }
-        }
-
-        // Малює блоки на полі
-        for (Tetromino.Block block: allBlocks) {
-            g.setColor(block.getColor());
-            g.fillRect(block.getX()*SCALE+1, block.getY()*SCALE+1, SCALE-1, SCALE-1);
-        }
-
-        // Малює лівий кордон
-        for (int i = 1; i < HEIGHT-1; i++) {
-            g.setColor(Color.GRAY);
-            g.fillRect(1, i*SCALE+1, SCALE-1, SCALE-1);
-        }
-
-        // Малює кордон_1 правого кордону
-        for (int i = 1; i < HEIGHT-1; i++) {
-            g.setColor(Color.GRAY);
-            g.fillRect(WIDTH*SCALE+1, i*SCALE+1, SCALE-1, SCALE-1);
-        }
-
-        // Малює кордон_2 правого кордону
-        for (int i = 1; i < HEIGHT-1; i++) {
-            g.setColor(Color.GRAY);
-            g.fillRect((WIDTH+5)*SCALE+1, i*SCALE+1, SCALE-1, SCALE-1);
-        }
-
-        // Малює кордон_1 верхнього кордону
-        for (int i = 0; i < WIDTH+6; i++) {
-            g.setColor(Color.GRAY);
-            g.fillRect(i*SCALE+1, 1, SCALE-1, SCALE-1);
-        }
-
-        // Малює кордон_2 верхнього кордону
-        for (int i = WIDTH+1; i < WIDTH+5; i++) {
-            g.setColor(Color.GRAY);
-            g.fillRect(i*SCALE+1, (5)*SCALE+1, SCALE-1, SCALE-1);
-        }
-
-        // Малює нижній кордон
-        for (int i = 0; i < WIDTH+6; i++) {
-            g.setColor(Color.GRAY);
-            g.fillRect(i*SCALE+1, (HEIGHT-1)*SCALE+1, SCALE-1, SCALE-1);
-        }
-
-        // Пише "Пауза"
-        if (!gameOver && pause) {
-            Font sPause = new Font("Bitstream Charter", Font.BOLD, 40);
-            Graphics2D g2 = (Graphics2D) g;
-            g2.setFont(sPause);
-            g2.setColor(Color.YELLOW);
-            g2.drawString("Пауза", 7*SCALE, (HEIGHT*SCALE)/2);
-        }
-
-        // Пише "Кінець гри"
-        for (Tetromino.Block block: allBlocks) {
-            if (block.getY() == 1) {
-                Font sGameOver = new Font("Bitstream Charter", Font.BOLD, 40);
-                Graphics2D g2 = (Graphics2D) g;
-                g2.setFont(sGameOver);
-                g2.setColor(Color.YELLOW);
-                g2.drawString("Кінець гри", 5*SCALE, (HEIGHT*SCALE)/2);
-                gameOver = true;
-                break;
-            }
-        }
-
-        // Малює наступну фігурку
-        for (Tetromino.Block block: nextTetromino.getAllPositions().get(Position.UP)) {
-            g.setColor(block.getColor());
-            int blockX = block.getX();
-            int blockY = block.getY();
-            int scale = SCALE - 1;
-            switch (nextTetromino.getType()) {
-                case I -> g.fillRect((blockX + WIDTH + 2) * SCALE + 17, (blockY + 4) * SCALE + 1, scale, scale);
-                case J -> g.fillRect((blockX + WIDTH + 2) * SCALE + 1, (blockY + 3) * SCALE + 17, scale, scale);
-                case L -> g.fillRect((blockX + WIDTH + 2) * SCALE + 1, (blockY + 3) * SCALE + 17, scale, scale);
-                case O -> g.fillRect((blockX + WIDTH + 2) * SCALE + 1, (blockY + 3) * SCALE + 1, scale, scale);
-                case S -> g.fillRect((blockX + WIDTH + 1) * SCALE + 17, (blockY + 3) * SCALE + 1, scale, scale);
-                case T -> g.fillRect((blockX + WIDTH + 1) * SCALE + 17, (blockY + 3) * SCALE + 1, scale, scale);
-                case Z -> g.fillRect((blockX + WIDTH + 1) * SCALE + 17, (blockY + 3) * SCALE + 1, scale, scale);
-            }
-        }
-
-        // Відображає координати фігурки
-        Font coordinates = new Font("Bitstream Charter", Font.BOLD, 20);
-        Graphics2D g2 = (Graphics2D) g;
-        g2.setFont(coordinates);
-        g2.setColor(Color.YELLOW);
-        g2.drawString("X: " + tetromino.getX() + " Y: " + (HEIGHT-1- tetromino.getY()), SCALE+5, 56);
-
-        // Відображає очки
-        Font sScore = new Font("Bitstream Charter", Font.BOLD, 35);
-        Graphics2D g3 = (Graphics2D) g;
-        g3.setFont(sScore);
-        g3.setColor(Color.YELLOW);
-        g3.drawString("ОЧКИ", (WIDTH+1)*SCALE+15, 7*SCALE+5);
-
-        g.setColor(Color.GRAY);
-        g.fillRect((WIDTH+1)*SCALE+10, 7*SCALE+13, 4*SCALE-18, SCALE+5);
-        g.setColor(Color.YELLOW);
-        g.fillRect((WIDTH+1)*SCALE+12, 7*SCALE+16, 4*SCALE-22, SCALE);
-
-        Font iScore = new Font("Bitstream Charter", Font.BOLD, 30);
-        Graphics2D g4 = (Graphics2D) g;
-        g4.setFont(iScore);
-        g4.setColor(Color.BLACK);
-        g4.drawString("000000".substring((""+score).length())+score, (WIDTH+1)*SCALE+15, 8*SCALE+10);
+        return mheight;
     }
 
-    public int getScale() {
-        return SCALE;
-    }
+    /**
+     * Малює фон ігрового поля
+     */
+    private void drawBackground(Graphics g) {
+        int scale = board.getScale();
+        int width = (board.getWidth() + 6) * scale;
+        int height = board.getHeight() * scale;
 
-    public int getWidthBoard() {
-        return WIDTH;
-    }
-
-    public int getHeightBoard() {
-        return HEIGHT;
-    }
-
-    public int getSpeed() {
-        return speed;
-    }
-
-    public boolean isPause() {
-        return pause;
-    }
-
-    public boolean isGameOver() {
-        return gameOver;
-    }
-
-    public boolean isClose() {
-        return close;
-    }
-
-    public int getScore() {
-        return score;
-    }
-
-    public Tetromino getTetromino() {
-        return tetromino;
-    }
-
-    public Tetromino getNextTetromino() {
-        return nextTetromino;
-    }
-
-    public List<Tetromino.Block> getAllBlocks() {
-        return allBlocks;
-    }
-
-
-
-
-
-
-    public void setTetromino(Tetromino tetromino) {
-        this.tetromino = tetromino;
-    }
-
-    public void setNextTetromino(Tetromino tetromino) {
-        this.nextTetromino = tetromino;
-    }
-
-    public void setPause(boolean pause) {
-        this.pause = pause;
-    }
-
-    public void setGameOver(boolean gameOver) {
-        this.gameOver = gameOver;
-    }
-
-    public void setSpeed(int speed) {
-        this.speed = speed;
-    }
-
-    public void setScore(int score) {
-        this.score = Math.max(score, this.score);
-    }
-
-    public void setClose(boolean close) {
-        this.close = close;
-    }
-
-    public void setAllBlocks(List<Tetromino.Block> allBlocks) {
-        this.allBlocks = allBlocks;
+        g.setColor(Color.BLACK);
+        g.fillRect(0, 0, width, height);
     }
 }

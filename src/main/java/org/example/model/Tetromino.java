@@ -80,11 +80,32 @@ public class Tetromino {
         private final int X;
         private final int Y;
         private final Color COLOR;
+        private volatile boolean deleted;
 
         public Block(int x, int y, Color color) {
             this.X = x;
             this.Y = y;
             this.COLOR = color;
+            deleted = false;
+        }
+
+        public Block lower() {
+            if (isDeleted()) {
+                throw new RuntimeException("Спроба опустити видалений блок");
+            }
+            return new Block(this.X, this.Y + 1, this.COLOR);
+        }
+
+        public Block copyWithColor(Color newColor) {
+            Block block = new Block(this.X, this.Y, newColor);
+            if (isDeleted()) {
+                block.delete();
+            }
+            return block;
+        }
+
+        public void delete() {
+            deleted = true;
         }
 
         public int getX() {
@@ -99,9 +120,13 @@ public class Tetromino {
             return COLOR;
         }
 
+        public boolean isDeleted() {
+            return deleted;
+        }
+
         @Override
         public boolean equals(Object o) {
-            if (o == null || o.getClass() != Block.class) {
+            if (o == null || o.getClass() != Block.class || o.hashCode() != this.hashCode()) {
                 return false;
             }
             if (this == o) {
@@ -113,7 +138,10 @@ public class Tetromino {
 
         @Override
         public int hashCode() {
-            return Objects.hash(X, Y, COLOR.getRGB());
+            int result = 17;
+            result = 31 * result + X;
+            result = 31 * result + Y;
+            return result;
         }
     }
 }
