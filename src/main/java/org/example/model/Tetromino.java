@@ -1,28 +1,27 @@
 package org.example.model;
 
-import org.example.enums.Direction;
 import org.example.enums.Position;
 import org.example.enums.Type;
 
+import javax.swing.*;
 import java.awt.Color;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
-public class Tetromino {
+public final class Tetromino {
     private final Type TYPE;
+    private final ImageIcon IMAGE_ICON_FOR_MENU;
     private volatile int x;
     private volatile int y;
     private final Map<Position, List<Tetromino.Block>> ALL_POSITIONS;
     private volatile Position position;
     private volatile List<Tetromino.Block> blocks;
 
-    private volatile Direction direction;
-
-    public Tetromino(Type type, int x, int y, Map<Position, List<Tetromino.Block>> allPositions) {
+    public Tetromino(Type type, int x, int y, ImageIcon imageIconForMenu, Map<Position, List<Tetromino.Block>> allPositions) {
         this.TYPE = type;
         this.x = x;
         this.y = y;
+        IMAGE_ICON_FOR_MENU = imageIconForMenu;
         this.ALL_POSITIONS = allPositions;
 
         this.position = Position.UP;
@@ -30,6 +29,10 @@ public class Tetromino {
 
     public Type getType() {
         return TYPE;
+    }
+
+    public ImageIcon getImageForMenu() {
+        return new ImageIcon(IMAGE_ICON_FOR_MENU.getImage());
     }
 
     public int getX() {
@@ -41,7 +44,8 @@ public class Tetromino {
     }
 
     public Map<Position, List<Tetromino.Block>> getAllPositions() {
-        return ALL_POSITIONS;
+        return ALL_POSITIONS.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> new ArrayList<>(entry.getValue())));
     }
 
     public Position getPosition() {
@@ -49,34 +53,26 @@ public class Tetromino {
     }
 
     public List<Tetromino.Block> getBlocks() {
-        return blocks;
+        return new ArrayList<>(blocks);
     }
 
-    public Direction getDirection() {
-        return direction;
+    public synchronized void setBlocks(List<Tetromino.Block> blocks) {
+        this.blocks = new ArrayList<>(blocks);
     }
 
-    public void setBlocks(List<Tetromino.Block> blocks) {
-        this.blocks = blocks;
-    }
-
-    public void setX(int x) {
+    public synchronized void setX(int x) {
         this.x = x;
     }
 
-    public void setY(int y) {
+    public synchronized void setY(int y) {
         this.y = y;
     }
 
-    public void setPosition(Position position) {
+    public synchronized void setPosition(Position position) {
         this.position = position;
     }
 
-    public void setDirection(Direction direction) {
-        this.direction = direction;
-    }
-
-    public static class Block {
+    public static final class Block {
         private final int X;
         private final int Y;
         private final Color COLOR;
@@ -90,15 +86,12 @@ public class Tetromino {
         }
 
         public Block lower() {
-            if (isDeleted()) {
-                throw new RuntimeException("Спроба опустити видалений блок");
-            }
             return new Block(this.X, this.Y + 1, this.COLOR);
         }
 
-        public Block copyWithColor(Color newColor) {
+        public Block copyWithNewColor(Color newColor) {
             Block block = new Block(this.X, this.Y, newColor);
-            if (isDeleted()) {
+            if (this.isDeleted()) {
                 block.delete();
             }
             return block;
@@ -138,10 +131,11 @@ public class Tetromino {
 
         @Override
         public int hashCode() {
-            int result = 17;
-            result = 31 * result + X;
-            result = 31 * result + Y;
-            return result;
+//            int result = 17;
+//            result = 31 * result + X;
+//            result = 31 * result + Y;
+//            return result;
+            return Objects.hash(X, Y);
         }
     }
 }

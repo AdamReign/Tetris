@@ -1,20 +1,24 @@
 package org.example.repository;
 
+import org.example.Tetris;
 import org.example.enums.Position;
 import org.example.enums.Type;
 import org.example.model.Tetromino;
 
+import javax.swing.*;
 import java.awt.Color;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class TetrominoRepository {
     private static final Map<Type, Map<Position, int[][]>> ALL_TETROMINOES;
+    private static final Map<Type, String> ALL_IMAGES_FOR_MENU;
     static {
         int[][][][] coordinatesOfBlocks = {
                 { // I
                         {{0, 0}, {0, -1}, {0, -2}, {0, -3}}, // UP
                         {{0, 0}, {1, 0}, {2, 0}, {3, 0}} // LEFT
+//                        {{0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}, {5, 0}, {6, 0}, {7, 0}, {8, 0}, {9, 0}, {10, 0}, {11, 0}, {12, 0}, {13, 0}} // LEFT
                 },
                 { // J
                         {{0, 0}, {1, 0}, {1, -1}, {1, -2}}, // UP
@@ -45,6 +49,44 @@ public class TetrominoRepository {
                         {{1, 0}, {2, 0}, {0, -1}, {1, -1}}, // UP
                         {{0, 0}, {0, -1}, {1, -1}, {1, -2}} // LEFT
                 }
+
+
+
+
+
+//                { // I
+//                        {{3, 3}, {3, 2}, {3, 1}, {3, 0}}, // UP
+//                        {{3, 3}, {4, 3}, {5, 3}, {6, 3}} // LEFT
+//                },
+//                { // J
+//                        {{3, 3}, {4, 3}, {4, 2}, {4, 1}}, // UP
+//                        {{3, 3}, {4, 3}, {5, 3}, {3, 2}}, // LEFT
+//                        {{3, 3}, {3, 2}, {3, 1}, {4, 1}}, // DOWN
+//                        {{5, 3}, {3, 2}, {4, 2}, {5, 2}} // RIGHT
+//                },
+//                { // L
+//                        {{3, 3}, {3, 2}, {3, 1}, {4, 3}}, // UP
+//                        {{3, 3}, {3, 2}, {4, 2}, {5, 2}}, // LEFT
+//                        {{4, 3}, {4, 2}, {4, 1}, {3, 1}}, // DOWN
+//                        {{3, 3}, {4, 3}, {5, 3}, {5, 2}} // RIGHT
+//                },
+//                { // O
+//                        {{3, 3}, {4, 3}, {3, 2}, {4, 2}} // UP
+//                },
+//                { // S
+//                        {{3, 3}, {4, 3}, {4, 2}, {5, 2}}, // UP
+//                        {{4, 3}, {4, 2}, {3, 2}, {3, 1}} // LEFT
+//                },
+//                { // T
+//                        {{3, 3}, {4, 3}, {5, 3}, {4, 2}}, // UP
+//                        {{3, 3}, {3, 2}, {3, 1}, {4, 2}}, // LEFT
+//                        {{3, 2}, {4, 2}, {5, 2}, {4, 3}}, // DOWN
+//                        {{4, 3}, {4, 2}, {4, 1}, {3, 2}} // RIGHT
+//                },
+//                { // Z
+//                        {{4, 3}, {5, 3}, {3, 2}, {4, 2}}, // UP
+//                        {{3, 3}, {3, 2}, {4, 2}, {4, 1}} // LEFT
+//                }
         };
         ALL_TETROMINOES = Arrays.stream(Type.values(), 0, coordinatesOfBlocks.length)
                 .collect(Collectors.toMap(
@@ -55,10 +97,27 @@ public class TetrominoRepository {
                                         pos -> coordinatesOfBlocks[type.ordinal()][pos.ordinal()]
                                 ))
                 ));
+
+        String path = "/icon_for_menu/%s.png";
+        String[] paths = {
+                String.format(path, "I"),
+                String.format(path, "J"),
+                String.format(path, "L"),
+                String.format(path, "O"),
+                String.format(path, "S"),
+                String.format(path, "T"),
+                String.format(path, "Z")
+        };
+        ALL_IMAGES_FOR_MENU = Arrays.stream(Type.values())
+                .collect(Collectors.toMap(
+                        key -> key,
+                        value -> paths[value.ordinal()]
+                ));
     }
 
-    public Map<Type, Map<Position, int[][]>> getAll() {
-        return ALL_TETROMINOES;
+    public ImageIcon getImageForMenu(Type type) {
+        String path = ALL_IMAGES_FOR_MENU.get(type);
+        return new ImageIcon(Objects.requireNonNull(Tetris.class.getResource(path)));
     }
 
     public int countPositions(Type type) {

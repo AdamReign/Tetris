@@ -2,30 +2,33 @@ package org.example;
 
 import org.example.controller.BoardController;
 import org.example.model.Board;
+import org.example.service.BoardService;
 import org.example.service.TetrominoService;
 import org.example.view.BoardView;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 
 public class Tetris {
     public static void main(String[] args) {
-        int SCALE = 32;
-        int WIDTH = 16;
-        int HEIGHT = 22;
-        Board board = new Board(WIDTH, HEIGHT, SCALE);
+        int scale = 32;
+        int width = 17;
+        int height = 22;
+        ImageIcon imageIcon =  new ImageIcon(Objects.requireNonNull(Tetris.class.getResource("/background.png")));
+        Color color = Color.BLACK;
+        Board board = new Board(width, height, scale, imageIcon, color);
         BoardView boardView = new BoardView(board);
 
 
-
-
-
-        TetrominoService tetrominoService = new TetrominoService(board, boardView);
+        TetrominoService tetrominoService = new TetrominoService(board);
+        BoardService boardService = new BoardService(board, tetrominoService);
         Queue<KeyEvent> keyEvents = new ArrayBlockingQueue<>(1);
-        BoardController boardController = new BoardController(board, boardView, tetrominoService, keyEvents);
+        BoardController boardController = new BoardController(board, boardView, tetrominoService, boardService, keyEvents);
 
 
 
@@ -36,9 +39,11 @@ public class Tetris {
         // Встановлює дію, яка відбудеться при закритті вікна
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         // Встановлює розмір вікна
-        frame.setSize(((WIDTH+6)*SCALE)+14, (HEIGHT*SCALE)+37);
+        int heightWindow = (height * scale);
+        int widthWindow = heightWindow;
+        frame.setSize(widthWindow + 14, heightWindow + 37);
         // Забороняє змінювати розмір вікна за допомогою миші
-        frame.setResizable(false);
+//        frame.setResizable(false);
         // Встановлює позицію вікна по центру екрана
         frame.setLocationRelativeTo(null);
         // Робить вікно видимим, виводить його на екран
@@ -76,6 +81,13 @@ public class Tetris {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+
+
+
+
+
+
+
 
 
 
