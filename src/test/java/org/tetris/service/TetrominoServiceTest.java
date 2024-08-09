@@ -25,14 +25,21 @@ public class TetrominoServiceTest {
     @BeforeEach
     public void initializeFields() {
         int blockSize = 32;
-        int width = 17;
+        int widthGrid = 17;
         int height = 22;
-        gameField = GameField.createInstance(width, height);
-        infoPanel = InfoPanel.createInstance();
-        board = Board.createInstance(width, height, blockSize, gameField, infoPanel);
+        gameField = GameField.createInstance(widthGrid, height);
+
+        int widthInfoPanel = 5 * blockSize;
+        int heightInfoPanel = height * blockSize;
+        infoPanel = InfoPanel.createInstance(widthInfoPanel, heightInfoPanel);
+
+        int widthBoard = (widthGrid + widthInfoPanel) * blockSize;
+        int heightBoard = height * blockSize;
+        board = Board.createInstance(widthBoard, heightBoard, blockSize, gameField, infoPanel);
+
         tetrominoRepository = TetrominoRepositoryImpl.getInstance();
         tetrominoService = TetrominoServiceImpl.createInstance(board, tetrominoRepository);
-        allBlocks = new Tetromino.Block[height][width];
+        allBlocks = new Tetromino.Block[height][widthGrid];
     }
 
     @AfterEach
