@@ -1,0 +1,4 @@
+{
+  "BoardConfig": "gameplay/params/board.json",
+  "MenuConfig": "mainmenu/params/menu.json"
+}
